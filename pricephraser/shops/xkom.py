@@ -17,5 +17,8 @@ def get_price_xkom(url):
     if not whole or not decimal:
         raise Exception("Nie znaleziono elementów ceny na stronie")
 
-    price = float(f"{whole.get_text(strip=True)}.{decimal.get_text(strip=True).replace('zł','')}")
+    whole_text = whole.get_text(strip=True).replace(" ", "")
+    decimal_text = decimal.get_text(strip=True).replace(" ", "").replace("zł", "")
+
+    price = float(f"{whole_text}.{decimal_text}")
     return price
