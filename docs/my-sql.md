@@ -1,5 +1,6 @@
-# my-SQL
-Work in progres
+# mySQL
+
+Work in progres...
 
 ## Database structure
 
