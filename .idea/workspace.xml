@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="44a5404d-bbbe-4ffb-8e5c-e8afcb09ba56" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/Easy-Price-Monitor.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Easy_Price-Monitor.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/save_prices.sh" beforeDir="false" afterPath="$PROJECT_DIR$/save_prices.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,6 +68,7 @@
       <updated>1757252285830</updated>
       <workItem from="1757252286901" duration="956000" />
       <workItem from="1757253379107" duration="153000" />
+      <workItem from="1757255014713" duration="464000" />
     </task>
     <servers />
   </component>

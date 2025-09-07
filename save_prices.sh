@@ -4,12 +4,13 @@
 # Settings
 # ===============================
 
-PROJECT_DIR="/home/sebastian/yt-pao"
-LOG_FILE="$PROJECT_DIR/logs/debug.log"
+PROJECT_DIR="$(pwd)"
+LOG_DIR="$PROJECT_DIR/logs"
+LOG_FILE="$LOG_DIR/debug.log"
 VENV_DIR="$PROJECT_DIR/venv"
 PYTHON_BIN="$VENV_DIR/bin/python3"
 REQUIREMENTS_FILE="$PROJECT_DIR/requirements.txt"
-SCRIPT_PATH="$PROJECT_DIR/easyPriceMonitor.py"
+SCRIPT_PATH="$PROJECT_DIR/easyPriceMonitor.py"  # upewnij się, że nazwa i lokalizacja są poprawne
 
 # ===============================
 # Helper functions
@@ -39,13 +40,20 @@ init_venv() {
 # Main logic
 # ===============================
 
+# Ensure logs directory exists
+mkdir -p "$LOG_DIR"
+
 check_internet
 init_venv
 
 cd "$PROJECT_DIR" || exit 1
 log "Starting script"
 
-$PYTHON_BIN "$SCRIPT_PATH" --handlers mysql csv 
+if [ -f "$SCRIPT_PATH" ]; then
+    $PYTHON_BIN "$SCRIPT_PATH" --handlers mysql csv
+else
+    log "ERROR: Script file '$SCRIPT_PATH' not found!"
+fi
 
 deactivate
 log "Script finished"
