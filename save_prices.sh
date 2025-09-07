@@ -4,13 +4,16 @@
 # Settings
 # ===============================
 
-PROJECT_DIR="$(pwd)"
+PROJECT_DIR="/home/sebastian/easy-price-monitor" #Replace with yours project path
 LOG_DIR="$PROJECT_DIR/logs"
 LOG_FILE="$LOG_DIR/debug.log"
 VENV_DIR="$PROJECT_DIR/venv"
 PYTHON_BIN="$VENV_DIR/bin/python3"
 REQUIREMENTS_FILE="$PROJECT_DIR/requirements.txt"
-SCRIPT_PATH="$PROJECT_DIR/easyPriceMonitor.py"  # upewnij się, że nazwa i lokalizacja są poprawne
+SCRIPT_PATH="$PROJECT_DIR/easyPriceMonitor.py"
+
+# Ensure logs directory exists
+mkdir -p "$LOG_DIR"
 
 # ===============================
 # Helper functions
@@ -40,13 +43,10 @@ init_venv() {
 # Main logic
 # ===============================
 
-# Ensure logs directory exists
-mkdir -p "$LOG_DIR"
-
+cd "$PROJECT_DIR" || exit 1
 check_internet
 init_venv
 
-cd "$PROJECT_DIR" || exit 1
 log "Starting script"
 
 if [ -f "$SCRIPT_PATH" ]; then
