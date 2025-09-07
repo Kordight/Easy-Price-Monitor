@@ -185,3 +185,5 @@ fabric.properties
 # .idea
 /logs/
 price_history.csv
+products.json
+mysql_config.json
