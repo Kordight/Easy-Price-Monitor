@@ -1,5 +1,7 @@
 ## Full Panel JSON
 
+<img width="1139" height="376" alt="Zrzut ekranu 2025-09-7 o 22 03 29" src="https://github.com/user-attachments/assets/3ef37f8f-b4a3-4853-9cfb-2d70de0ba100" />
+
 Below is the full configuration for a Grafana panel that displays the price history of RTX 5090 graphics cards over time.
 
 This panel is a **time series** visualization that reads data from a MySQL datasource and plots product prices. It supports multiple products and shops, showing each combination as a separate metric.
