@@ -3,20 +3,18 @@ from bs4 import BeautifulSoup
 import json
 
 def get_price_mediaexpert(url):
-    """
-    Pobiera cenę produktu ze strony Media Expert i zwraca ją jako float.
-    """
+    """Downloads and parses the product page from MediaExpert to extract the price."""
     scraper = cloudscraper.create_scraper()
     response = scraper.get(url)
     if response.status_code != 200:
-        raise Exception(f"Błąd pobierania strony {url}: {response.status_code}")
+        raise Exception(f"[mediaexpert] Error, downloading webpage {url}: failed, response: {response.status_code}")
 
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # Zbierz wszystkie <script type="application/ld+json">
+    # Collect all <script type="application/ld+json">
     scripts = soup.find_all("script", type="application/ld+json")
     if not scripts:
-        raise Exception("Nie znaleziono żadnych danych JSON-LD na stronie")
+        raise Exception("[mediaexpert] No <script type='application/ld+json'> found on the page")
 
     price = None
 
@@ -26,13 +24,12 @@ def get_price_mediaexpert(url):
         except Exception:
             continue
 
-        # Niektóre skrypty mają "@graph", więc trzeba przejść po elementach
         if isinstance(data, dict):
-            # przypadek prosty
+            # easy case
             if data.get("@type") == "Product" and "offers" in data:
                 price = float(data["offers"]["price"])
                 break
-            # przypadek z @graph
+            # case when there is a list of nodes
             if "@graph" in data:
                 for node in data["@graph"]:
                     if node.get("@type") == "Product" and "offers" in node:
@@ -40,6 +37,6 @@ def get_price_mediaexpert(url):
                         break
 
     if price is None:
-        raise Exception("Nie udało się odczytać ceny z JSON-LD (Product)")
+        raise Exception("[mediaexpert] Price not found in the JSON-LD scripts")
 
     return price
