@@ -56,6 +56,12 @@ You can use the tool in **two ways**:
    ./save_prices.sh
    ```
 
+   **Warning:** By default, this script also saves data to the database.  
+    Make sure to check the `scheduled_price_scraping.md` section or disable it by changing the desired handlers (line 53):  
+
+    ```bash
+    $PYTHON_BIN "$SCRIPT_PATH" --handlers mysql csv
+    ```
 2. **Console call via Python**
    Run the script with:
 
