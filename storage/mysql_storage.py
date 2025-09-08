@@ -3,7 +3,7 @@ from mysql.connector import Error
 from datetime import datetime
 
 def ensure_tables_exist(cursor):
-    """Tworzy brakujące tabele products, shops i prices."""
+    """Creates the necessary tables if they do not exist."""
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -31,7 +31,7 @@ def ensure_tables_exist(cursor):
     """)
 
 def save_price_mysql(results, db_config):
-    """Zapisuje wyniki do tabel products/shops/prices w MySQL."""
+    """Saves price data to a MySQL database."""
     conn = None
     try:
         conn = mysql.connector.connect(**db_config)
@@ -47,7 +47,7 @@ def save_price_mysql(results, db_config):
             timestamp = row.get("date", datetime.now())
             currency = row.get("currency", "PLN")
 
-            # 1. Produkt
+            # 1. Product
             cursor.execute("SELECT id FROM products WHERE name = %s", (product_name,))
             product = cursor.fetchone()
             if not product:
@@ -57,7 +57,7 @@ def save_price_mysql(results, db_config):
             else:
                 product_id = product[0]
 
-            # 2. Sklep
+            # 2. Shop
             cursor.execute("SELECT id FROM shops WHERE name = %s", (shop_name,))
             shop = cursor.fetchone()
             if not shop:
@@ -67,17 +67,17 @@ def save_price_mysql(results, db_config):
             else:
                 shop_id = shop[0]
 
-            # 3. Cena
+            # 3. Price
             cursor.execute("""
                 INSERT INTO prices (product_id, shop_id, price, currency, timestamp)
                 VALUES (%s, %s, %s, %s, %s)
             """, (product_id, shop_id, price, currency, timestamp))
 
         conn.commit()
-        print(f"[MySQL] Zapisano {len(results)} rekordów do tabeli 'prices'")
+        print(f"[MySQL] Saved {len(results)} records to table 'prices'")
 
     except mysql.connector.Error as e:
-        print(f"[MySQL] Błąd: {e}")
+        print(f"[MySQL] Error: {e}")
     finally:
         if conn is not None and conn.is_connected():
             cursor.close()
