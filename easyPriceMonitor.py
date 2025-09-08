@@ -1,13 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import argparse
+import random
+from time import sleep
 
 from pricephraser.core import get_price
 from storage import STORAGE_HANDLERS
 from visualization import PLOT_HANDLERS
-from utils import load_products
+from utils import load_products, load_app_config
 
 PRODUCTS_FILE = "products.json"
 DATABASE_CONFIG_FILE = "mysql_config.json"
+DEFAULT_APP_CONFIG = "easyPrice_monitor_config.json"
+
+settings = load_app_config(DEFAULT_APP_CONFIG)
+interval = settings[0]["interval"][0] if settings[0].get("bUseDelayInterval") else None
+
+def sleep_with_log(interval):
+    """Sleep losowo w zakresie interval dict i wypisz log"""
+    time_to_wait = random.randint(interval["minIntervalSeconds"], interval["maxInterval"])
+    print(f"[{datetime.now()}] Waiting {time_to_wait}s until [{datetime.now() + timedelta(seconds=time_to_wait)}]")
+    sleep(time_to_wait)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Easy Price Monitor")
@@ -33,7 +46,10 @@ def main():
                     "date": datetime.now().isoformat()
                 })
             except Exception as e:
-                print(f"[{shop['name']}] Błąd: {e}")
+                print(f"[{shop['name']}] Error: {e}")
+            # Random delay between requests
+            if interval:
+                sleep_with_log(interval)
 
     # dynamic handlers execution
     if args.handlers:
