@@ -70,20 +70,32 @@ DEFAULT_APP_CONFIG = {
                     "minIntervalSeconds": 5,
                     "maxInterval": 20
                 }
-            ]
+            ],
+            "alerts": {
+                "bEnableAlerts": True,
+                "percentDropThreshold": 5,
+                "ProductIDs": []  # empty list means all products
+            },
+            "email": {
+                "smtpServer": "smtp.gmail.com",
+                "smtpPort": 587,
+                "user": "source@gmail.com",
+                "password": "password",
+                "from": "source@gmail.com",
+                "to": "target@gmail.com"
+            }
         }
     ]
 }
 
-
-def load_app_config(APP_CONFIG):
+def load_app_config(app_config_path):
     """Load app config from JSON file, if not create default file"""
-    if not os.path.exists(APP_CONFIG):
-        with open(APP_CONFIG, "w", encoding="utf-8") as f:
+    if not os.path.exists(app_config_path):
+        with open(app_config_path, "w", encoding="utf-8") as f:
             json.dump(DEFAULT_APP_CONFIG, f, indent=4, ensure_ascii=False)
-        print(f"[INFO] Utworzono domyślny plik {APP_CONFIG}")
+        print(f"[INFO] Utworzono domyślny plik {app_config_path}")
         return DEFAULT_APP_CONFIG["settings"]
 
-    with open(APP_CONFIG, "r", encoding="utf-8") as f:
+    with open(app_config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
     return config["settings"]

@@ -29,6 +29,15 @@ def ensure_tables_exist(cursor):
             FOREIGN KEY (shop_id) REFERENCES shops(id)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS product_details
+            (
+             id INT AUTO_INCREMENT PRIMARY KEY,
+             product_id INT NOT NULL,
+             product_url VARCHAR(150) NOT NULL,
+             FOREIGN KEY(product_id) REFERENCES products(id)
+            )
+    """)
 
 def save_price_mysql(results, db_config):
     """Saves price data to a MySQL database."""
@@ -37,7 +46,7 @@ def save_price_mysql(results, db_config):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # 🔍 Sprawdź czy istnieją wszystkie tabele
+        # Ensure table exists
         ensure_tables_exist(cursor)
 
         for row in results:
@@ -46,6 +55,7 @@ def save_price_mysql(results, db_config):
             price = row["price"]
             timestamp = row.get("date", datetime.now())
             currency = row.get("currency", "PLN")
+            product_url = row["product_url"]
 
             # 1. Product
             cursor.execute("SELECT id FROM products WHERE name = %s", (product_name,))
@@ -54,6 +64,11 @@ def save_price_mysql(results, db_config):
                 cursor.execute("INSERT INTO products (name) VALUES (%s)", (product_name,))
                 conn.commit()
                 product_id = cursor.lastrowid
+                cursor.execute(
+                    "INSERT INTO product_details (product_id, product_url) VALUES (%s, %s)",
+                    (product_id, product_url)
+                )
+                conn.commit()
             else:
                 product_id = product[0]
 
@@ -82,3 +97,66 @@ def save_price_mysql(results, db_config):
         if conn is not None and conn.is_connected():
             cursor.close()
             conn.close()
+
+def get_price_changes(db_config, product_ids):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor(dictionary=True)
+
+    query = f"""
+        SELECT *
+        FROM (
+            SELECT 
+                pr.product_id,
+                p.name AS product_name,
+                s.name AS shop_name,
+                pr.price,
+                pr.timestamp,
+                pr.price - LAG(pr.price) OVER (
+                    PARTITION BY pr.product_id, pr.shop_id 
+                    ORDER BY pr.timestamp
+                ) AS price_diff,
+                ROUND(
+                (pr.price - LAG(pr.price) OVER (
+                        PARTITION BY pr.product_id, pr.shop_id 
+                        ORDER BY pr.timestamp
+                    )) 
+                / LAG(pr.price) OVER (
+                        PARTITION BY pr.product_id, pr.shop_id 
+                        ORDER BY pr.timestamp
+                    ) * 100,
+                2
+            ) AS percent_change,
+                ROW_NUMBER() OVER (PARTITION BY pr.product_id, pr.shop_id ORDER BY pr.timestamp DESC) AS rn
+            FROM prices pr
+            JOIN products p ON p.id = pr.product_id
+            JOIN shops s ON s.id = pr.shop_id
+            WHERE pr.product_id IN ({",".join(map(str, product_ids))})
+        ) t
+        WHERE rn = 1
+        ORDER BY timestamp DESC;
+
+    """
+
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # tylko ostatnie wpisy dla każdego produktu/sklepu
+    latest = {}
+    for row in rows:
+        key = (row["product_id"], row["shop_name"])
+        if key not in latest:
+            latest[key] = row
+    return list(latest.values())
+
+def get_all_product_ids(db_config):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM products")
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [row[0] for row in rows]
