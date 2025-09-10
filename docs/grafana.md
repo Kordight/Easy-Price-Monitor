@@ -124,6 +124,9 @@ WHERE $__timeFilter(pr.timestamp)
   AND pr.product_id IN (7,8,9)
 ORDER BY pr.timestamp;
 ```
+**Make sure to select format to `Time Series`**
+
+<img width="857" height="140" alt="Zrzut ekranu 2025-09-10 o 21 00 28" src="https://github.com/user-attachments/assets/5313e180-fe91-489e-a4db-7f9352845f23" />
 
 **Notes:**
 
