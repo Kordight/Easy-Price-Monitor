@@ -107,7 +107,5 @@ def main():
     else:
         print("No price changes detected.")
 
-
-
 if __name__ == "__main__":
     main()
