@@ -6,7 +6,7 @@ CSV_FILE = "price_history.csv"
 def save_price_csv(results):
     """Saves price history to CSV file."""
     with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["product", "shop", "price", "date"])
+        writer = csv.DictWriter(f, fieldnames=["product", "shop", "price", "date, product_url"])
         # add headers only if file is empty
         if f.tell() == 0:
             writer.writeheader()

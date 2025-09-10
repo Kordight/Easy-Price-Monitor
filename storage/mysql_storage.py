@@ -142,7 +142,6 @@ def get_price_changes(db_config, product_ids):
     cursor.close()
     conn.close()
 
-    # tylko ostatnie wpisy dla każdego produktu/sklepu
     latest = {}
     for row in rows:
         key = (row["product_id"], row["shop_name"])
