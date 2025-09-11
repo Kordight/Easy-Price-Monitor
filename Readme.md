@@ -17,8 +17,9 @@ However, in [docs/grafana.md](docs/grafana.md) you can find a template to visual
 - Track prices from multiple websites
 - Easy to expand support for new websites via plugins
 - Saving price records to CSV
-- MySQL support
+- **MySQL support**
 - Lightweight
+- **Built-in email alerting system for MySQL.**
 
 ---
 
