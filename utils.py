@@ -73,7 +73,7 @@ DEFAULT_APP_CONFIG = {
             ],
             "alerts": {
                 "bEnableAlerts": True,
-                "percentDropThreshold": 5,
+                "percentDropThreshold": 3.5,
                 "ProductIDs": []  # empty list means all products
             },
             "email": {
