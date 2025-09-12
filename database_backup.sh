@@ -1,13 +1,18 @@
 #!/bin/bash
 
 # Configuration
-CONFIG_JSON="mysql_config.json"
+PROJECT_DIR="/home/sebastian/easy-price-monitor"
+CONFIG_JSON="$PROJECT_DIR/mysql_config.json"
 
 # Check if config exists
 if [ ! -f "$CONFIG_JSON" ]; then
     echo "Config file $CONFIG_JSON not found!"
     exit 1
 fi
+
+# Check dependencies
+command -v jq >/dev/null 2>&1 || { echo "jq not found. Install it first."; exit 1; }
+command -v mysqldump >/dev/null 2>&1 || { echo "mysqldump not found. Install it first."; exit 1; }
 
 # Function to read configuration from JSON file
 read_config() {
@@ -21,13 +26,11 @@ read_config() {
 # Function to create a backup
 create_backup() {
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    BACKUP_DIR="backups"
+    BACKUP_DIR="$PROJECT_DIR/backups"
     BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
     mkdir -p "$BACKUP_DIR"
 
-    mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE"
-    
-    if [ $? -eq 0 ]; then
+    if mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE"; then
         echo "Backup successful: $BACKUP_FILE"
     else
         echo "Backup failed!"
