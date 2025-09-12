@@ -1,41 +1,40 @@
 #!/bin/bash
 
-# -----------------------------
-# Backup MySQL Database Script
-# -----------------------------
-
-# Paths
 CONFIG_JSON="/home/sebastian/easy-price-monitor/mysql_config.json"
 BACKUP_DIR="/home/sebastian/easy-price-monitor/backups"
-
 JQ_BIN="/usr/bin/jq"
 MYSQLDUMP_BIN="/usr/bin/mysqldump"
+LOG_FILE="/home/sebastian/easy-price-monitor/backup.log"
 
-# Check if config exists
-if [ ! -f "$CONFIG_JSON" ]; then
-    echo "$(date +"%Y-%m-%d %H:%M:%S") - Config file $CONFIG_JSON not found!"
-    exit 1
-fi
-
-# Read configuration from JSON
+# Read config
 DB_HOST=$($JQ_BIN -r '.connection.host' "$CONFIG_JSON")
 DB_USER=$($JQ_BIN -r '.connection.user' "$CONFIG_JSON")
 DB_PASSWORD=$($JQ_BIN -r '.connection.password' "$CONFIG_JSON")
 DB_NAME=$($JQ_BIN -r '.connection.database' "$CONFIG_JSON")
 DB_PORT=$($JQ_BIN -r '.connection.port' "$CONFIG_JSON")
 
-# Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
-
-# Backup filename with timestamp
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
 
-# Perform the backup without tablespaces to avoid PROCESS privilege error
-$MYSQLDUMP_BIN -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE" 2
+# Create temporary MySQL config file
+TMP_CNF=$(mktemp)
+chmod 600 "$TMP_CNF"
+cat > "$TMP_CNF" <<EOL
+[client]
+user=$DB_USER
+password=$DB_PASSWORD
+host=$DB_HOST
+port=$DB_PORT
+EOL
 
-# Check result
-if [ $? -eq 0 ]; then
+# Run mysqldump using the temporary config file
+$MYSQLDUMP_BIN --defaults-extra-file="$TMP_CNF" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE" 2
+RESULT=$?
+
+rm -f "$TMP_CNF"
+
+if [ $RESULT -eq 0 ]; then
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup successful: $BACKUP_FILE"
 else
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup FAILED!"
