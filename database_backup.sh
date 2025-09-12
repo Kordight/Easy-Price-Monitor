@@ -15,6 +15,7 @@ read_config() {
     DB_USER=$(jq -r '.connection.user' "$CONFIG_JSON")
     DB_PASSWORD=$(jq -r '.connection.password' "$CONFIG_JSON")
     DB_NAME=$(jq -r '.connection.database' "$CONFIG_JSON")
+    DB_PORT=$(jq -r '.connection.port' "$CONFIG_JSON")
 }
 
 # Function to create a backup
@@ -23,7 +24,8 @@ create_backup() {
     BACKUP_DIR="backups"
     BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
     mkdir -p "$BACKUP_DIR"
-    mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$BACKUP_FILE"
+
+    mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE"
     
     if [ $? -eq 0 ]; then
         echo "Backup successful: $BACKUP_FILE"

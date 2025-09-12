@@ -189,3 +189,4 @@ products.json
 mysql_config.json
 easyPrice_monitor_config.json
 .idea/workspace.xml
+/backups/
