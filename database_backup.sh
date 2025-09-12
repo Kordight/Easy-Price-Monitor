@@ -11,10 +11,10 @@ fi
 
 # Function to read configuration from JSON file
 read_config() {
-    DB_HOST=$(jq -r '.host' "$CONFIG_JSON")
-    DB_USER=$(jq -r '.user' "$CONFIG_JSON")
-    DB_PASSWORD=$(jq -r '.password' "$CONFIG_JSON")
-    DB_NAME=$(jq -r '.database' "$CONFIG_JSON")
+    DB_HOST=$(jq -r '.connection.host' "$CONFIG_JSON")
+    DB_USER=$(jq -r '.connection.user' "$CONFIG_JSON")
+    DB_PASSWORD=$(jq -r '.connection.password' "$CONFIG_JSON")
+    DB_NAME=$(jq -r '.connection.database' "$CONFIG_JSON")
 }
 
 # Function to create a backup
