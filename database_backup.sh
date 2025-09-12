@@ -1,40 +1,43 @@
 #!/bin/bash
 
-# Configuration
-CONFIG_JSON="mysql_config.json"
+# -----------------------------
+# Backup MySQL Database Script
+# -----------------------------
+
+# Paths
+CONFIG_JSON="/home/sebastian/easy-price-monitor/mysql_config.json"
+BACKUP_DIR="/home/sebastian/easy-price-monitor/backups"
+
+JQ_BIN="/usr/bin/jq"
+MYSQLDUMP_BIN="/usr/bin/mysqldump"
 
 # Check if config exists
 if [ ! -f "$CONFIG_JSON" ]; then
-    echo "Config file $CONFIG_JSON not found!"
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Config file $CONFIG_JSON not found!"
     exit 1
 fi
 
-# Function to read configuration from JSON file
-read_config() {
-    DB_HOST=$(jq -r '.connection.host' "$CONFIG_JSON")
-    DB_USER=$(jq -r '.connection.user' "$CONFIG_JSON")
-    DB_PASSWORD=$(jq -r '.connection.password' "$CONFIG_JSON")
-    DB_NAME=$(jq -r '.connection.database' "$CONFIG_JSON")
-    DB_PORT=$(jq -r '.connection.port' "$CONFIG_JSON")
-}
+# Read configuration from JSON
+DB_HOST=$($JQ_BIN -r '.connection.host' "$CONFIG_JSON")
+DB_USER=$($JQ_BIN -r '.connection.user' "$CONFIG_JSON")
+DB_PASSWORD=$($JQ_BIN -r '.connection.password' "$CONFIG_JSON")
+DB_NAME=$($JQ_BIN -r '.connection.database' "$CONFIG_JSON")
+DB_PORT=$($JQ_BIN -r '.connection.port' "$CONFIG_JSON")
 
-# Function to create a backup
-create_backup() {
-    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    BACKUP_DIR="backups"
-    BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
-    mkdir -p "$BACKUP_DIR"
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
 
-    mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE"
-    
-    if [ $? -eq 0 ]; then
-        echo "Backup successful: $BACKUP_FILE"
-    else
-        echo "Backup failed!"
-        exit 1
-    fi
-}
+# Backup filename with timestamp
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
 
-# Run functions
-read_config
-create_backup
+# Perform the backup without tablespaces to avoid PROCESS privilege error
+$MYSQLDUMP_BIN -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --no-tablespaces "$DB_NAME" > "$BACKUP_FILE" 2
+
+# Check result
+if [ $? -eq 0 ]; then
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup successful: $BACKUP_FILE"
+else
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup FAILED!"
+    exit 1
+fi
