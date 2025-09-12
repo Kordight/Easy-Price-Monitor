@@ -40,3 +40,31 @@ else
     echo "$(date +"%Y-%m-%d %H:%M:%S") - Backup FAILED!"
     exit 1
 fi
+
+# Function to read configuration from JSON file
+read_config() {
+    DB_HOST=$(jq -r '.host' "$CONFIG_JSON")
+    DB_USER=$(jq -r '.user' "$CONFIG_JSON")
+    DB_PASSWORD=$(jq -r '.password' "$CONFIG_JSON")
+    DB_NAME=$(jq -r '.database' "$CONFIG_JSON")
+}
+
+# Function to create a backup
+create_backup() {
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    BACKUP_DIR="backups"
+    BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_backup_$TIMESTAMP.sql"
+    mkdir -p "$BACKUP_DIR"
+    mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$BACKUP_FILE"
+    
+    if [ $? -eq 0 ]; then
+        echo "Backup successful: $BACKUP_FILE"
+    else
+        echo "Backup failed!"
+        exit 1
+    fi
+}
+
+# Run functions
+read_config
+create_backup
