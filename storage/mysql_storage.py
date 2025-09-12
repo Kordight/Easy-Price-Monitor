@@ -109,7 +109,9 @@ def get_price_changes(db_config, product_ids):
                 pr.product_id,
                 p.name AS product_name,
                 s.name AS shop_name,
+                pd.product_url AS product_url,
                 pr.price,
+                pr.currency,
                 pr.timestamp,
                 pr.price - LAG(pr.price) OVER (
                     PARTITION BY pr.product_id, pr.shop_id 
@@ -130,6 +132,7 @@ def get_price_changes(db_config, product_ids):
             FROM prices pr
             JOIN products p ON p.id = pr.product_id
             JOIN shops s ON s.id = pr.shop_id
+            JOIN product_details pd ON pd.id = pr.product_id
             WHERE pr.product_id IN ({",".join(map(str, product_ids))})
         ) t
         WHERE rn = 1
