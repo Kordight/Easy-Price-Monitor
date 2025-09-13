@@ -35,7 +35,9 @@ def ensure_tables_exist(cursor):
              id INT AUTO_INCREMENT PRIMARY KEY,
              product_id INT NOT NULL,
              product_url VARCHAR(150) NOT NULL,
-             FOREIGN KEY(product_id) REFERENCES products(id)
+             shop_id INT NOT NULL,
+             FOREIGN KEY(product_id) REFERENCES products(id),
+             FOREIGN KEY(shop_id) REFERENCES shops(id)
             )
     """)
 
@@ -58,6 +60,7 @@ def save_price_mysql(results, db_config):
             product_url = row["product_url"]
 
             # 1. Product
+            product_id = None
             cursor.execute("SELECT id FROM products WHERE name = %s", (product_name,))
             product = cursor.fetchone()
             if not product:
@@ -65,13 +68,27 @@ def save_price_mysql(results, db_config):
                 conn.commit()
                 product_id = cursor.lastrowid
                 cursor.execute(
-                    "INSERT INTO product_details (product_id, product_url) VALUES (%s, %s)",
-                    (product_id, product_url)
+                    "INSERT INTO product_details (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
+                    (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
                 )
                 conn.commit()
             else:
                 product_id = product[0]
-
+            # Update product URL if it has changed
+            cursor.execute("SELECT product_url FROM product_details WHERE product_id = %s", (product_id,))
+            product_url_db = cursor.fetchone()
+            if not product_url_db:
+                cursor.execute(
+                    "INSERT INTO product_details (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
+                    (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
+                )
+                conn.commit()
+            elif product_url_db[0] != product_url:
+                cursor.execute(
+                    "UPDATE product_details SET product_url = %s WHERE product_id = %s",
+                    (product_url, product_id)
+                )
+                conn.commit()
             # 2. Shop
             cursor.execute("SELECT id FROM shops WHERE name = %s", (shop_name,))
             shop = cursor.fetchone()
@@ -162,3 +179,25 @@ def get_all_product_ids(db_config):
     conn.close()
 
     return [row[0] for row in rows]
+
+def get_shop_id_by_name(db_config, shop_name):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM shops WHERE name = %s", (shop_name,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return row[0] if row else None
+
+def get_product_url_by_id(db_config, product_id):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT product_url FROM product_details WHERE product_id = %s", (product_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return row[0] if row else None

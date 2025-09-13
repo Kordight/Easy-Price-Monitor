@@ -4,7 +4,7 @@ import random
 from time import sleep
 
 from pricephraser.core import get_price
-from storage import STORAGE_HANDLERS, get_changes_mysql, get_all_product_ids
+from storage import STORAGE_HANDLERS, get_changes_mysql, get_all_product_ids_mysql
 from visualization import PLOT_HANDLERS
 from utils import load_products, load_app_config
 from notifier import send_email_alert
@@ -84,7 +84,7 @@ def main():
             if handler_name == "mysql":
                 PRODUCT_IDS = settings[0]["alerts"].get("ProductIDs", [])
                 if not PRODUCT_IDS:
-                    PRODUCT_IDS = get_all_product_ids()
+                    PRODUCT_IDS = get_all_product_ids_mysql()
                 changes = get_changes_mysql(PRODUCT_IDS)
                 print(f"Found {len(PRODUCT_IDS)} to alert")
             elif handler_name == "csv":

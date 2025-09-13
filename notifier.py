@@ -1,6 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from storage import get_product_url_by_id_mysql
 
 
 def send_email_alert(changes, smtp_config, email_from, email_to):
@@ -12,7 +13,7 @@ def send_email_alert(changes, smtp_config, email_from, email_to):
 
     for c in changes:
         changed_products.append(
-            f"<li><a href='{c['product_url']}'>{c['product_name']} </a> at {c['shop_name']}: "
+            f"<li><a href='{get_product_url_by_id_mysql(c['product_id'])}'>{c['product_name']} </a> at {c['shop_name']}: "
             f"(change: <b>{c['price_diff']} {c['currency']}, {c['percent_change']} % change {'↑' if c['price_diff'] > 0 else '↓' if c['price_diff'] < 0 else '→'})</b>"
             f"<br> Current price <b>{c['price']} <b></li>"
         )
