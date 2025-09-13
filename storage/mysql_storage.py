@@ -30,7 +30,7 @@ def ensure_tables_exist(cursor):
         )
     """)
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS product_details
+        CREATE TABLE IF NOT EXISTS product_urls
             (
              id INT AUTO_INCREMENT PRIMARY KEY,
              product_id INT NOT NULL,
@@ -68,24 +68,24 @@ def save_price_mysql(results, db_config):
                 conn.commit()
                 product_id = cursor.lastrowid
                 cursor.execute(
-                    "INSERT INTO product_details (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
+                    "INSERT INTO product_urls (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
                     (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
                 )
                 conn.commit()
             else:
                 product_id = product[0]
             # Update product URL if it has changed
-            cursor.execute("SELECT product_url FROM product_details WHERE product_id = %s", (product_id,))
+            cursor.execute("SELECT product_url FROM product_urls WHERE product_id = %s", (product_id,))
             product_url_db = cursor.fetchone()
             if not product_url_db:
                 cursor.execute(
-                    "INSERT INTO product_details (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
+                    "INSERT INTO product_urls (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
                     (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
                 )
                 conn.commit()
             elif product_url_db[0] != product_url:
                 cursor.execute(
-                    "UPDATE product_details SET product_url = %s WHERE product_id = %s",
+                    "UPDATE product_urls SET product_url = %s WHERE product_id = %s",
                     (product_url, product_id)
                 )
                 conn.commit()
@@ -149,7 +149,7 @@ def get_price_changes(db_config, product_ids):
             FROM prices pr
             JOIN products p ON p.id = pr.product_id
             JOIN shops s ON s.id = pr.shop_id
-            JOIN product_details pd ON pd.id = pr.product_id
+            JOIN product_urls pd ON pd.id = pr.product_id
             WHERE pr.product_id IN ({",".join(map(str, product_ids))})
         ) t
         WHERE rn = 1
@@ -195,7 +195,7 @@ def get_product_url_by_id(db_config, product_id):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT product_url FROM product_details WHERE product_id = %s", (product_id,))
+    cursor.execute("SELECT product_url FROM product_urls WHERE product_id = %s", (product_id,))
     row = cursor.fetchone()
     cursor.close()
     conn.close()
