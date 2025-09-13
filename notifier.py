@@ -12,7 +12,7 @@ def send_email_alert(changes, smtp_config, email_from, email_to):
     changed_products = []
 
     for c in changes:
-        url = get_product_url_by_id_mysql(c['product_id'], c['shop_id'])
+        url = get_product_url_by_id_mysql(c['product_id'], get_shop_id_by_name_mysql(c['shop_name']))
         changed_products.append(
             f"<li><a href='{url}'>{c['product_name']}</a> at {c['shop_name']}: "
             f"(change: <b>{c['price_diff']} {c['currency']}, {c['percent_change']} % change {'↑' if c['price_diff'] > 0 else '↓' if c['price_diff'] < 0 else '→'})</b>"

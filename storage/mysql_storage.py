@@ -78,34 +78,31 @@ def save_price_mysql(results, db_config, commit_every=500):
                 else:
                     product_id = product[0]
 
-                # 3) Product URL — tylko gdy mamy sensowny URL
+                # 3) Product URL (insert or update)
                 if product_url and str(product_url).strip():
                     product_url = str(product_url).strip()
-                    # używamy atomic upsert (wymaga UNIQUE(product_id, shop_id))
                     cursor.execute("""
                         INSERT INTO product_urls (product_id, product_url, shop_id)
                         VALUES (%s, %s, %s)
                         ON DUPLICATE KEY UPDATE product_url = VALUES(product_url)
                     """, (product_id, product_url, shop_id))
                 else:
-                    # brak URL-a w tym wierszu — loguj, ale nie przerywaj
-                    print(f"[MySQL] brak product_url dla product='{product_name}' shop='{shop_name}'")
+                    print(f"[MySQL] no product_url found for product_name='{product_name}' shop='{shop_name}'")
 
-                # 4) Wstawiamy cenę
+                # 4) Insert price record
                 cursor.execute("""
                     INSERT INTO prices (product_id, shop_id, price, currency, timestamp)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (product_id, shop_id, price, currency, timestamp))
 
                 count += 1
-                # opcjonalny commit co N wierszy
+                # Commit periodically
                 if commit_every and count % commit_every == 0:
                     conn.commit()
 
             except Exception as e_inner:
-                # log błędu dla pojedynczego wiersza i kontynuuj
-                print(f"[MySQL] Błąd w zapisie wiersza {row!r}: {e_inner}")
-                # możesz też zapisać do pliku logu
+                # Log the error and continue with the next row
+                print(f"[MySQL] Error saving row: {row!r}: {e_inner}")
                 continue
 
         conn.commit()
@@ -207,15 +204,3 @@ def get_product_url_by_id(db_config, product_id, shop_id):
     conn.close()
     return row[0] if row else None
 
-def b_is_URL_existing(db_config, product_url):
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT 1 
-        FROM product_urls 
-        WHERE product_url = %s
-    """, (product_url,))
-    exists = cursor.fetchone() is not None
-    cursor.close()
-    conn.close()
-    return exists
