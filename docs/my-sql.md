@@ -4,4 +4,4 @@ Work in progres...
 
 ## Database structure
 
-<img width="1147" height="231" alt="image" src="https://github.com/user-attachments/assets/3ff53241-0820-4792-8021-9651f7e21dd1" />
+<img width="1280" height="645" alt="Untitled" src="https://github.com/user-attachments/assets/c92e2083-e2b9-4e53-b3a9-1c9e6d135506" />
