@@ -30,83 +30,86 @@ def ensure_tables_exist(cursor):
         )
     """)
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS product_urls
-            (
-             id INT AUTO_INCREMENT PRIMARY KEY,
-             product_id INT NOT NULL,
-             product_url VARCHAR(150) NOT NULL,
-             shop_id INT NOT NULL,
-             FOREIGN KEY(product_id) REFERENCES products(id),
-             FOREIGN KEY(shop_id) REFERENCES shops(id)
-            )
+    CREATE TABLE IF NOT EXISTS product_urls (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        product_url TEXT NOT NULL,
+        shop_id INT NOT NULL,
+        UNIQUE KEY unique_product_shop (product_id, shop_id),
+        FOREIGN KEY (product_id) REFERENCES products(id),
+        FOREIGN KEY (shop_id) REFERENCES shops(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """)
 
-def save_price_mysql(results, db_config):
-    """Saves price data to a MySQL database."""
+
+def save_price_mysql(results, db_config, commit_every=500):
     conn = None
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # Ensure table exists
         ensure_tables_exist(cursor)
 
+        count = 0
         for row in results:
-            product_name = row["product"]
-            shop_name = row["shop"]
-            price = row["price"]
-            timestamp = row.get("date", datetime.now())
-            currency = row.get("currency", "PLN")
-            product_url = row["product_url"]
+            try:
+                product_name = row["product"]
+                shop_name = row["shop"]
+                price = row["price"]
+                timestamp = row.get("date", datetime.now())
+                currency = row.get("currency", "PLN")
+                product_url = row.get("product_url")
 
-            # 1. Product
-            product_id = None
-            cursor.execute("SELECT id FROM products WHERE name = %s", (product_name,))
-            product = cursor.fetchone()
-            if not product:
-                cursor.execute("INSERT INTO products (name) VALUES (%s)", (product_name,))
-                conn.commit()
-                product_id = cursor.lastrowid
-                cursor.execute(
-                    "INSERT INTO product_urls (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
-                    (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
-                )
-                conn.commit()
-            else:
-                product_id = product[0]
-            # Update product URL if it has changed
-            cursor.execute("SELECT product_url FROM product_urls WHERE product_id = %s", (product_id,))
-            product_url_db = cursor.fetchone()
-            if not product_url_db:
-                cursor.execute(
-                    "INSERT INTO product_urls (product_id, product_url, shop_id) VALUES (%s, %s,%s)",
-                    (product_id, product_url, get_shop_id_by_name(db_config, shop_name))
-                )
-                conn.commit()
-            elif product_url_db[0] != product_url:
-                cursor.execute(
-                    "UPDATE product_urls SET product_url = %s WHERE product_id = %s",
-                    (product_url, product_id)
-                )
-                conn.commit()
-            # 2. Shop
-            cursor.execute("SELECT id FROM shops WHERE name = %s", (shop_name,))
-            shop = cursor.fetchone()
-            if not shop:
-                cursor.execute("INSERT INTO shops (name) VALUES (%s)", (shop_name,))
-                conn.commit()
-                shop_id = cursor.lastrowid
-            else:
-                shop_id = shop[0]
+                # 1) Shop (insert if missing)
+                cursor.execute("SELECT id FROM shops WHERE name = %s", (shop_name,))
+                shop = cursor.fetchone()
+                if not shop:
+                    cursor.execute("INSERT INTO shops (name) VALUES (%s)", (shop_name,))
+                    shop_id = cursor.lastrowid
+                else:
+                    shop_id = shop[0]
 
-            # 3. Price
-            cursor.execute("""
-                INSERT INTO prices (product_id, shop_id, price, currency, timestamp)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (product_id, shop_id, price, currency, timestamp))
+                # 2) Product (insert if missing)
+                cursor.execute("SELECT id FROM products WHERE name = %s", (product_name,))
+                product = cursor.fetchone()
+                if not product:
+                    cursor.execute("INSERT INTO products (name) VALUES (%s)", (product_name,))
+                    product_id = cursor.lastrowid
+                else:
+                    product_id = product[0]
+
+                # 3) Product URL — tylko gdy mamy sensowny URL
+                if product_url and str(product_url).strip():
+                    product_url = str(product_url).strip()
+                    # używamy atomic upsert (wymaga UNIQUE(product_id, shop_id))
+                    cursor.execute("""
+                        INSERT INTO product_urls (product_id, product_url, shop_id)
+                        VALUES (%s, %s, %s)
+                        ON DUPLICATE KEY UPDATE product_url = VALUES(product_url)
+                    """, (product_id, product_url, shop_id))
+                else:
+                    # brak URL-a w tym wierszu — loguj, ale nie przerywaj
+                    print(f"[MySQL] brak product_url dla product='{product_name}' shop='{shop_name}'")
+
+                # 4) Wstawiamy cenę
+                cursor.execute("""
+                    INSERT INTO prices (product_id, shop_id, price, currency, timestamp)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (product_id, shop_id, price, currency, timestamp))
+
+                count += 1
+                # opcjonalny commit co N wierszy
+                if commit_every and count % commit_every == 0:
+                    conn.commit()
+
+            except Exception as e_inner:
+                # log błędu dla pojedynczego wiersza i kontynuuj
+                print(f"[MySQL] Błąd w zapisie wiersza {row!r}: {e_inner}")
+                # możesz też zapisać do pliku logu
+                continue
 
         conn.commit()
-        print(f"[MySQL] Saved {len(results)} records to table 'prices'")
+        print(f"[MySQL] Saved {count} records to table 'prices' (and upserted URLs where present).")
 
     except mysql.connector.Error as e:
         print(f"[MySQL] Error: {e}")
@@ -191,13 +194,28 @@ def get_shop_id_by_name(db_config, shop_name):
 
     return row[0] if row else None
 
-def get_product_url_by_id(db_config, product_id):
+def get_product_url_by_id(db_config, product_id, shop_id):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
-
-    cursor.execute("SELECT product_url FROM product_urls WHERE product_id = %s", (product_id,))
+    cursor.execute("""
+        SELECT product_url 
+        FROM product_urls 
+        WHERE product_id = %s AND shop_id = %s
+    """, (product_id, shop_id))
     row = cursor.fetchone()
     cursor.close()
     conn.close()
-
     return row[0] if row else None
+
+def b_is_URL_existing(db_config, product_url):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 1 
+        FROM product_urls 
+        WHERE product_url = %s
+    """, (product_url,))
+    exists = cursor.fetchone() is not None
+    cursor.close()
+    conn.close()
+    return exists
