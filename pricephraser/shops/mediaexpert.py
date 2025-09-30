@@ -27,7 +27,7 @@ def get_price_mediaexpert(url):
         if isinstance(data, dict):
             # easy case
             if data.get("@type") == "Product" and "offers" in data:
-                price = float(data["offers"]["price"])
+                price = float(data["offers"]["price"]) / 100
                 break
             # case when there is a list of nodes
             if "@graph" in data:
