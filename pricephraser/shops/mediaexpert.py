@@ -2,6 +2,8 @@ import cloudscraper
 from bs4 import BeautifulSoup
 import json
 
+constant_price_divisor = 1 # media Expert usually flips decimal in prices; temporary solution, variable should be 1 or 100 value
+
 def get_price_mediaexpert(url):
     """Downloads and parses the product page from MediaExpert to extract the price."""
     scraper = cloudscraper.create_scraper()
@@ -27,7 +29,7 @@ def get_price_mediaexpert(url):
         if isinstance(data, dict):
             # easy case
             if data.get("@type") == "Product" and "offers" in data:
-                price = float(data["offers"]["price"]) / 100
+                price = float(data["offers"]["price"]) / constant_price_divisor
                 break
             # case when there is a list of nodes
             if "@graph" in data:
