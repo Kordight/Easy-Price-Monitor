@@ -114,8 +114,18 @@ def send_email_alert(changes, smtp_config, email_from, email_to):
 
     msg.attach(MIMEText(body, "html"))
 
-    with smtplib.SMTP(smtp_config["server"], smtp_config["port"]) as server:
-        server.starttls()
-        server.login(smtp_config["user"], smtp_config["password"])
-        server.send_message(msg)
+    port = smtp_config["port"]
+    
+    if port == 465:
+        # SSL od razu
+        with smtplib.SMTP_SSL(smtp_config["server"], port) as server:
+            server.login(smtp_config["user"], smtp_config["password"])
+            server.send_message(msg)
+    else:
+        # STARTTLS dla innych portów np. 587
+        with smtplib.SMTP(smtp_config["server"], port) as server:
+            server.starttls()
+            server.login(smtp_config["user"], smtp_config["password"])
+            server.send_message(msg)
+
 
