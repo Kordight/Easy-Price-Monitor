@@ -116,16 +116,25 @@ def send_email_alert(changes, smtp_config, email_from, email_to):
 
     port = smtp_config["port"]
     
-    if port == 465:
-        # SSL
-        with smtplib.SMTP_SSL(smtp_config["server"], port) as server:
-            server.login(smtp_config["user"], smtp_config["password"])
-            server.send_message(msg)
-    else:
-        # STARTTLS
-        with smtplib.SMTP(smtp_config["server"], port) as server:
-            server.starttls()
-            server.login(smtp_config["user"], smtp_config["password"])
-            server.send_message(msg)
+    host = smtp_config["server"]
+    try:
+        if port == 465:
+            # SSL
+            print(f"[INFO] Connecting to {host}:{port} using SSL")
+            with smtplib.SMTP_SSL(host, port) as smtp:
+                smtp.login(smtp_config["user"], smtp_config["password"])
+                smtp.send_message(msg)
+        else:
+            # STARTTLS
+            print(f"[INFO] Connecting to {host}:{port} using STARTTLS")
+            with smtplib.SMTP(host, port) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.ehlo()
+                smtp.login(smtp_config["user"], smtp_config["password"])
+                smtp.send_message(msg)
+        print(f"[INFO] Email sent to {email_to} (subject: {msg['Subject']})")
+    except Exception as e:
+        print(f"[ERROR] Failed to send email to {email_to}: {e}")
 
 
